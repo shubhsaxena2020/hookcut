@@ -6,7 +6,7 @@ import type { StudioSettings } from "./StudioRoot";
 import { Btn, Field, fmtTime, inputCls } from "./ui";
 
 const LANGS: [string, string][] = [
-  ["auto", "Detect automatically"],
+  ["auto", "Not sure (transcribed as English)"],
   ["en", "English (faster, English-only model)"],
   ["es", "Spanish"],
   ["fr", "French"],

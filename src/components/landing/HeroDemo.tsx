@@ -45,8 +45,15 @@ export function HeroDemo() {
         </div>
         <p className="font-display absolute inset-x-2 bottom-[18%] text-center text-[19px] font-black uppercase leading-[1.25] text-white [text-shadow:0_2px_0_#11133a]">
           {WORDS.map((w, i) => (
-            <span key={i} className="demo-word" style={{ animationDelay: `${i * perWord}s` }}>
-              {w}{" "}
+            <span key={i} className="relative inline-block px-[0.14em]">
+              <span className="demo-hl absolute inset-0 rounded-[0.14em] bg-mark" style={{ animationDelay: `${i * perWord}s` }} />
+              <span className="relative">{w}</span>
+              <span
+                className="demo-hl absolute inset-0 px-[0.14em] text-ink [text-shadow:none]"
+                style={{ animationDelay: `${i * perWord}s` }}
+              >
+                {w}
+              </span>
             </span>
           ))}
         </p>

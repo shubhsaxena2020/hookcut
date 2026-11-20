@@ -1,6 +1,7 @@
 import type { CaptionSettings, Clip, Word, WordEdit } from "@/lib/types";
 import { EMOJI, FILLERS, PROFANITY, STOPWORDS, EMOTION } from "@/lib/clips/lexicon";
 import { FONT_FILES } from "./presets";
+import { wordsIn } from "@/lib/clips/score";
 
 export type RWord = { id: number; text: string; start: number; end: number; keyword: boolean; emoji?: string };
 export type Line = { words: RWord[]; start: number; end: number; show: number; hide: number };
@@ -45,7 +46,7 @@ export function editedWords(words: Word[], edits: Record<number, WordEdit>, opts
 
 export function buildLines(words: Word[], clip: Clip): Line[] {
   const s = clip.captions;
-  const list = editedWords(words, clip.edits, { dropFillers: clip.removeFillers });
+  const list = editedWords(wordsIn(words, clip.start, clip.end), clip.edits, { dropFillers: clip.removeFillers });
   const lines: Line[] = [];
   let cur: RWord[] = [];
   const flush = () => {
@@ -116,15 +117,19 @@ export function drawCaptions(ctx: Ctx, W: number, H: number, lines: Line[], t: n
   ctx.textAlign = "left";
   ctx.lineJoin = "round";
   ctx.font = fontString(s, px);
+  // styles that scale the spoken word up reserve room so neighbours never touch
+  const pop = s.preset === "bold-pop" || s.preset === "gaming" || s.preset === "big-punch" ? 0.16 : 0;
   const space = () => ctx.measureText(" ").width;
-  let widths = line.words.map((w) => ctx.measureText(w.text).width);
-  let total = widths.reduce((a, b) => a + b, 0) + space() * (line.words.length - 1);
+  const measure = () => {
+    const ws = line.words.map((w) => ctx.measureText(w.text).width);
+    return { ws, tot: ws.reduce((a, b) => a + b * (1 + pop), 0) + space() * (line.words.length - 1) };
+  };
+  let { ws: widths, tot: total } = measure();
   const maxW = W * (s.preset === "lower-third" ? 0.92 : 0.86);
   if (total > maxW) {
     px *= maxW / total;
     ctx.font = fontString(s, px);
-    widths = line.words.map((w) => ctx.measureText(w.text).width);
-    total = widths.reduce((a, b) => a + b, 0) + space() * (line.words.length - 1);
+    ({ ws: widths, tot: total } = measure());
   }
   const sp = space();
   const y = s.y * H;
@@ -154,6 +159,7 @@ export function drawCaptions(ctx: Ctx, W: number, H: number, lines: Line[], t: n
 
   line.words.forEach((w, i) => {
     const wW = widths[i];
+    x += (wW * pop) / 2;
     const active = t >= w.start && t < w.end + 0.04;
     const spoken = t >= w.start;
     let color = w.keyword ? s.keywordColor : s.color;
@@ -222,7 +228,7 @@ export function drawCaptions(ctx: Ctx, W: number, H: number, lines: Line[], t: n
     ctx.fillStyle = color;
     ctx.fillText(w.text, -wW / 2, 0);
     ctx.restore();
-    x += wW + sp;
+    x += wW + sp + (wW * pop) / 2;
   });
   ctx.restore();
 }

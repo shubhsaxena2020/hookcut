@@ -23,8 +23,8 @@ for (const [w, h, tag] of [[1440, 900, "1440"], [390, 844, "390"]]) {
   const ctx = await browser.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: 1, reducedMotion: "reduce" });
   const page = await ctx.newPage();
   for (const [name, p] of pages) {
-    await page.goto(base + p, { waitUntil: "networkidle" });
-    await page.waitForTimeout(400);
+    await page.goto(base + p, { waitUntil: "load", timeout: 90_000 });
+    await page.waitForTimeout(1500);
     await page.screenshot({ path: path.join(out, `${name}-${tag}.png`), fullPage: true });
     console.log("shot", name, tag);
   }

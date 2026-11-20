@@ -82,7 +82,7 @@ export default function Home() {
       {/* Hero */}
       <section className="mx-auto grid max-w-6xl items-center gap-12 px-4 pb-16 pt-12 sm:px-6 md:grid-cols-[1.15fr_1fr] md:pt-20">
         <div>
-          <h1 className="font-display text-[2.6rem] font-black leading-[1.02] tracking-[-0.02em] text-ink sm:text-[3.6rem] lg:text-[4.3rem]">
+          <h1 className="font-display text-[2.5rem] font-black leading-[1.02] tracking-[-0.02em] text-ink sm:text-[3.3rem] lg:text-[3.85rem]">
             Long video in.
             <br />
             Shorts that hook, out.
@@ -94,6 +94,7 @@ export default function Home() {
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <Link
+              prefetch={false}
               href="/app"
               className="rounded-full bg-cobalt px-6 py-3 text-base font-semibold text-white shadow-[0_8px_24px_-10px_rgba(36,51,214,0.8)] transition-colors hover:bg-cobalt-deep"
             >
@@ -322,6 +323,7 @@ export default function Home() {
             <p className="mt-2 text-ink-2">Open the studio and drop it in. No sign-up.</p>
           </div>
           <Link
+            prefetch={false}
             href="/app"
             className="shrink-0 rounded-full bg-ink px-7 py-3.5 text-base font-semibold text-paper hover:bg-cobalt-deep"
           >

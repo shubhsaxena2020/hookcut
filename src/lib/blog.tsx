@@ -81,7 +81,7 @@ export const POSTS: Post[] = [
           Hookcut runs all six checks on every sentence-aligned window of your video and shows you
           the breakdown for each clip, so you can see why it was picked and overrule it. It runs in
           your browser, so a two-hour stream never has to be uploaded.{" "}
-          <Link href="/app">Try it on your last stream</Link>.
+          <Link prefetch={false} href="/app">Try it on your last stream</Link>.
         </p>
       </>
     ),
@@ -135,7 +135,7 @@ export const POSTS: Post[] = [
         </p>
         <p>
           Hookcut keeps word-level timing for every caption and lets you edit, split, merge and
-          replace without drift. <Link href="/app">Open the studio</Link> and try fixing a name.
+          replace without drift. <Link prefetch={false} href="/app">Open the studio</Link> and try fixing a name.
         </p>
       </>
     ),

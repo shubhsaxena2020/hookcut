@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { execFileSync } from "node:child_process";
-import { mkdirSync, existsSync, writeFileSync } from "node:fs";
+import { mkdirSync, existsSync, writeFileSync, readFileSync } from "node:fs";
 import path from "node:path";
 
 const VIDEO = process.env.TEST_VIDEO ?? path.resolve("e2e/fixtures/test-stream.mp4");
@@ -27,6 +27,7 @@ test("upload, find clips, edit a caption, switch layout, export a 1080x1920 MP4"
   const firstClipMs = Date.now() - t0;
   await expect(page.getByTestId("processing-done")).toBeVisible({ timeout: 20 * 60 * 1000 });
   const doneMs = Date.now() - t0;
+  console.log(`first clip after ${firstClipMs} ms, transcription done after ${doneMs} ms`);
   const cards = await page.getByTestId("clip-card").count();
   expect(cards).toBeGreaterThan(0);
   const score = Number(await page.getByTestId("clip-score").first().innerText());
@@ -63,16 +64,30 @@ test("upload, find clips, edit a caption, switch layout, export a 1080x1920 MP4"
   await page.getByRole("tab", { name: "Clip" }).click();
   const [srt] = await Promise.all([page.waitForEvent("download"), page.getByTestId("download-srt").click()]);
   await srt.saveAs(path.join(OUT, "clip.srt"));
+  const srtText = readFileSync(path.join(OUT, "clip.srt"), "utf8");
+  const ends = [...srtText.matchAll(/--> (\d\d):(\d\d):(\d\d),(\d\d\d)/g)].map((m) => +m[1] * 3600 + +m[2] * 60 + +m[3] + +m[4] / 1000);
+  expect(ends.length).toBeGreaterThan(1);
+  expect(Math.max(...ends)).toBeGreaterThan(expected * 0.5);
+  expect(Math.max(...ends)).toBeLessThanOrEqual(expected + 1);
 
   // 5. export the MP4
   const t1 = Date.now();
-  const [dl] = await Promise.all([
-    page.waitForEvent("download", { timeout: 20 * 60 * 1000 }),
-    page.getByTestId("export-clip").click(),
+  const downloadP = page.waitForEvent("download", { timeout: 20 * 60 * 1000 });
+  await page.getByTestId("export-clip").click();
+  // fail fast if the app reports an export error instead of downloading
+  const dl = await Promise.race([
+    downloadP,
+    page
+      .getByTestId("studio-error")
+      .waitFor({ timeout: 20 * 60 * 1000 })
+      .then(async () => {
+        throw new Error(`Export error shown: ${await page.getByTestId("studio-error").innerText()}`);
+      }),
   ]);
   const mp4 = path.join(OUT, "clip.mp4");
   await dl.saveAs(mp4);
   const exportMs = Date.now() - t1;
+  console.log(`export took ${exportMs} ms`);
 
   // 6. verify with ffprobe
   const probe = JSON.parse(

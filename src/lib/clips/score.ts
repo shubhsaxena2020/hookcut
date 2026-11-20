@@ -214,9 +214,11 @@ export function scoreWindow(ctx: ScoreContext, start: number, end: number): Scor
   const terms = [...tf.entries()]
     .map(([t, c]) => [t, (1 + Math.log(c)) * (ctx.idf.get(t) ?? 0)] as const)
     .sort((x, y) => y[1] - x[1]);
-  const top = terms.slice(0, 5);
-  const novelty = sat(top.reduce((s, [, v]) => s + v, 0) / Math.max(1, top.length) / (ctx.maxTfidf * 0.8));
-  const keyword = top[0]?.[0];
+  // salience: content words this clip keeps coming back to, weighted by how rare
+  // they are in the rest of the video (single mentions say little about topic)
+  const repeated = terms.filter(([t]) => (tf.get(t) ?? 0) >= 2).slice(0, 3);
+  const novelty = sat(repeated.reduce((s, [, v]) => s + v, 0) / (ctx.maxTfidf * 3));
+  const keyword = (repeated[0] ?? terms[0])?.[0];
   if (novelty > 0.6 && keyword) reasons.push(`Distinct topic in this video: "${keyword}"`);
 
   // VISUAL

@@ -10,7 +10,7 @@ const NAV = [
 
 export function Header() {
   return (
-    <header className="sticky top-0 z-40 border-b border-line/70 bg-paper/90 backdrop-blur">
+    <header className="sticky top-0 z-40 border-b border-line/70 bg-paper">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
         <Link href="/" aria-label="Hookcut home" className="shrink-0">
           <Logo />
@@ -23,6 +23,7 @@ export function Header() {
           ))}
         </nav>
         <Link
+          prefetch={false}
           href="/app"
           className="rounded-full bg-ink px-4 py-2 text-sm font-semibold text-paper transition-colors hover:bg-cobalt"
         >

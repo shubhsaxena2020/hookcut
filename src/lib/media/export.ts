@@ -41,7 +41,22 @@ export type ExportJob = {
 
 export class ExportCanceled extends Error {}
 
+/**
+ * Try the hardware encoder first; some GPUs reject 1080x1920 (portrait) or
+ * 60 fps, so fall back to the browser's software encoder on failure.
+ */
 export async function exportClip(job: ExportJob): Promise<Blob> {
+  try {
+    return await exportOnce(job, "prefer-hardware");
+  } catch (err) {
+    if (err instanceof ExportCanceled || job.signal?.aborted) throw err;
+    console.warn("Hardware encode failed, retrying with software encoder", err);
+    job.onProgress?.(0);
+    return exportOnce(job, "no-preference");
+  }
+}
+
+async function exportOnce(job: ExportJob, hw: "prefer-hardware" | "no-preference"): Promise<Blob> {
   const { clip, words, faces } = job;
   await loadCaptionFonts();
   const { w: W, h: H } = ASPECTS[clip.layout.aspect];
@@ -84,7 +99,7 @@ export async function exportClip(job: ExportJob): Promise<Blob> {
       frameRate: fps,
       quality: QUALITY_HIGH,
       forceTranscode: true,
-      hardwareAcceleration: "prefer-hardware",
+      hardwareAcceleration: hw,
       processedWidth: W,
       processedHeight: H,
       process: (sample) => {

@@ -55,6 +55,7 @@ export default function PricingPage() {
             ))}
           </ul>
           <Link
+            prefetch={false}
             href="/app"
             className="mt-8 inline-block rounded-full bg-cobalt px-6 py-3 font-semibold text-white hover:bg-cobalt-deep"
           >

@@ -437,7 +437,7 @@ export function StudioRoot() {
       {(error || notice) && (
         <div className="mx-auto mt-3 w-full max-w-6xl px-4" role="status" aria-live="polite">
           {error && (
-            <div className="flex items-start justify-between gap-4 rounded-xl border border-hot/40 bg-hot/10 px-4 py-3 text-sm" role="alert">
+            <div className="flex items-start justify-between gap-4 rounded-xl border border-hot/40 bg-hot/10 px-4 py-3 text-sm" role="alert" data-testid="studio-error">
               <span>{error}</span>
               <button type="button" className="text-night-muted hover:text-white" onClick={() => setError(null)} aria-label="Dismiss error">
                 Close

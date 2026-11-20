@@ -1,0 +1,39 @@
+{
+  "firstClipMs": 37958,
+  "doneMs": 456452,
+  "cards": 5,
+  "score": 89,
+  "expected": 38.3,
+  "dur": 38.3,
+  "video": {
+    "codec_name": "h264",
+    "codec_type": "video",
+    "width": 1080,
+    "height": 1920
+  },
+  "audio": {
+    "codec_name": "aac",
+    "codec_type": "audio"
+  },
+  "exportMs": 176034,
+  "logs": [
+    "[warning] No available adapters.",
+    "[log] I1120 16:25:34.060999 2210688 gl_context.cc:408] GL version: 3.0 (OpenGL ES 3.0 (WebGL 2.0 (OpenGL ES 3.0 Chromium))), renderer: WebKit WebGL",
+    "[warning] W1120 16:25:34.065999 2210688 gl_context.cc:1136] OpenGL error checking is disabled",
+    "[log] Graph successfully started running.",
+    "[warning] [.WebGL-0x792c0283e000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "[warning] [.WebGL-0x792c0283e000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "[warning] [.WebGL-0x792c0283e000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+    "[warning] [.WebGL-0x792c0283e000]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)",
+    "[warning] No language specified - defaulting to English (en).",
+    "[warning] No language specified - defaulting to English (en).",
+    "[warning] No language specified - defaulting to English (en).",
+    "[log] Graph finished closing successfully.",
+    "[log] I1120 16:27:43.943000 2210688 gl_context_webgl.cc:151] Successfully destroyed WebGL context with handle 1",
+    "[warning] No language specified - defaulting to English (en).",
+    "[warning] No language specified - defaulting to English (en).",
+    "[warning] No language specified - defaulting to English (en).",
+    "[warning] No language specified - defaulting to English (en).",
+    "[warning] Hardware encode failed, retrying with software encoder OperationError: Unsupported configuration. Check isConfigSupported() and separately verify the description (if required) prior to calling configure().\n    at new aF (http://localhost:3100/_next/static/chunks/2ma9ykf5pxwu0.js:1:150483)\n    at aO._createDecoder (http://localhost:3100/_next/static/chunks/2ma9ykf5pxwu0.js:1:162754)\n    at async http://localhost:3100/_next/static/chunks/2ma9ykf5pxwu0.js:1:146674"
+  ]
+}

@@ -128,22 +128,24 @@ body {
 }
 
 /* ---------- Hero demo animation (CSS only) ---------- */
-@keyframes hc-word {
-  0%, 100% { background: transparent; color: #fff; transform: scale(1); }
-  4%, 22% { background: var(--mark); color: var(--ink); transform: scale(1.08); }
-  26% { background: transparent; color: #fff; transform: scale(1); }
+/* Only opacity and transform animate, so the compositor does the work
+   and the main thread stays free. */
+@keyframes hc-hl {
+  0%, 100% { opacity: 0; }
+  3%, 11% { opacity: 1; }
+  13% { opacity: 0; }
 }
-.demo-word {
-  display: inline-block;
-  padding: 0 0.14em;
-  border-radius: 0.14em;
-  animation: hc-word 4.8s infinite;
+.demo-hl {
+  opacity: 0;
+  will-change: opacity;
+  animation: hc-hl 4.8s infinite;
 }
 @keyframes hc-scan {
   from { transform: translateX(0); }
   to { transform: translateX(100%); }
 }
 .demo-playhead {
+  will-change: transform;
   animation: hc-scan 9.6s linear infinite;
 }
 @keyframes hc-window {
@@ -151,6 +153,7 @@ body {
   38%, 100% { opacity: 1; }
 }
 .demo-window {
+  will-change: opacity;
   animation: hc-window 9.6s ease-out infinite;
 }
 @keyframes hc-track {
@@ -158,12 +161,13 @@ body {
   50% { transform: translate(8%, 2%); }
 }
 .demo-track {
+  will-change: transform;
   animation: hc-track 6s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  .demo-word, .demo-playhead, .demo-window, .demo-track {
+  .demo-hl, .demo-playhead, .demo-window, .demo-track {
     animation: none !important;
   }
   .demo-window { opacity: 1; }
