@@ -1,0 +1,13 @@
+
+Running 3 tests using 1 worker
+
+  ok 1 e2e\language.spec.ts:17:3 › auto-detect recognises English speech (1.0m)
+  ok 2 e2e\language.spec.ts:17:3 › auto-detect recognises Spanish speech (1.6m)
+first clip after 116614 ms, transcription done after 409769 ms
+export took 77194 ms
+
+  ok 3 e2e\studio.spec.ts:9:1 › upload, find clips, edit a caption, switch layout, export a 1080x1920 MP4 (8.3m)
+
+  Slow test file: e2e\studio.spec.ts (8.3m)
+  Consider running tests from slow files in parallel. See: https://playwright.dev/docs/test-parallel
+  3 passed (11.0m)

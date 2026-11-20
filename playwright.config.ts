@@ -18,6 +18,15 @@ export default defineConfig({
     headless: true,
     acceptDownloads: true,
     viewport: { width: 1440, height: 900 },
-    launchOptions: { args: ["--enable-unsafe-webgpu", "--autoplay-policy=no-user-gesture-required"] },
+    launchOptions: {
+      args: [
+        "--enable-unsafe-webgpu",
+        "--autoplay-policy=no-user-gesture-required",
+        // a fresh Chrome profile otherwise starts downloading its on-device AI model in the
+        // background, which competed with the Whisper and MediaPipe downloads and stalled them
+        "--disable-component-update",
+        "--disable-features=OptimizationGuideModelDownloading,OptimizationHintsFetching,OptimizationTargetPrediction,OptimizationHints,OnDeviceModelPerformanceParams",
+      ],
+    },
   },
 });
