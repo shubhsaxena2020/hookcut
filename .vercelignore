@@ -1,0 +1,7 @@
+node_modules
+.next
+e2e/out
+e2e/fixtures
+test-results
+playwright-report
+docs/screens

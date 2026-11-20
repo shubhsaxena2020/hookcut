@@ -1,26 +1,175 @@
 @import "tailwindcss";
 
+/* Hookcut design tokens.
+   Light "paper" surfaces for the site; a deep cobalt night for the studio.
+   The one loud colour is the caption highlighter yellow. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --paper: #f2f3fa;
+  --paper-2: #e7e9f6;
+  --ink: #11133a;
+  --ink-2: #2a2d5c;
+  --muted: #50557f;
+  --line: #d3d6ec;
+  --cobalt: #2433d6;
+  --cobalt-deep: #161e8c;
+  --mark: #ffe14a;
+  --hot: #ff4f7b;
+
+  --night: #0d0f2e;
+  --night-1: #151845;
+  --night-2: #1e2259;
+  --night-line: #2c3170;
+  --night-text: #eceeff;
+  --night-muted: #a3a8da;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-paper: var(--paper);
+  --color-paper-2: var(--paper-2);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-cobalt: var(--cobalt);
+  --color-cobalt-deep: var(--cobalt-deep);
+  --color-mark: var(--mark);
+  --color-hot: var(--hot);
+  --color-night: var(--night);
+  --color-night-1: var(--night-1);
+  --color-night-2: var(--night-2);
+  --color-night-line: var(--night-line);
+  --color-night-text: var(--night-text);
+  --color-night-muted: var(--night-muted);
+  --font-sans: var(--font-body);
+  --font-display: var(--font-display);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 1.0625rem;
+  line-height: 1.6;
+}
+
+.font-display {
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-variation-settings: "wdth" 120;
+}
+.font-display-narrow {
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-variation-settings: "wdth" 70;
+}
+
+:focus-visible {
+  outline: 3px solid var(--cobalt);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.studio :focus-visible {
+  outline-color: var(--mark);
+}
+
+/* Highlighter mark used for the karaoke word, mirrors the product */
+.hl {
+  background: var(--mark);
+  color: var(--ink);
+  box-shadow: 0.12em 0 0 var(--mark), -0.12em 0 0 var(--mark);
+  border-radius: 0.12em;
+}
+
+.prose-hc {
+  max-width: 68ch;
+}
+.prose-hc h2 {
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-variation-settings: "wdth" 110;
+  font-weight: 800;
+  font-size: 1.6rem;
+  line-height: 1.2;
+  margin: 2.4rem 0 0.8rem;
+}
+.prose-hc h3 {
+  font-weight: 700;
+  font-size: 1.2rem;
+  margin: 1.8rem 0 0.5rem;
+}
+.prose-hc p,
+.prose-hc ul,
+.prose-hc ol {
+  margin: 0 0 1.1rem;
+}
+.prose-hc ul {
+  list-style: disc;
+  padding-left: 1.3rem;
+}
+.prose-hc ol {
+  list-style: decimal;
+  padding-left: 1.3rem;
+}
+.prose-hc li {
+  margin: 0.3rem 0;
+}
+.prose-hc a {
+  color: var(--cobalt);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.prose-hc code {
+  font-size: 0.9em;
+  background: var(--paper-2);
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+}
+
+/* ---------- Hero demo animation (CSS only) ---------- */
+@keyframes hc-word {
+  0%, 100% { background: transparent; color: #fff; transform: scale(1); }
+  4%, 22% { background: var(--mark); color: var(--ink); transform: scale(1.08); }
+  26% { background: transparent; color: #fff; transform: scale(1); }
+}
+.demo-word {
+  display: inline-block;
+  padding: 0 0.14em;
+  border-radius: 0.14em;
+  animation: hc-word 4.8s infinite;
+}
+@keyframes hc-scan {
+  from { transform: translateX(0); }
+  to { transform: translateX(100%); }
+}
+.demo-playhead {
+  animation: hc-scan 9.6s linear infinite;
+}
+@keyframes hc-window {
+  0%, 30% { opacity: 0.25; }
+  38%, 100% { opacity: 1; }
+}
+.demo-window {
+  animation: hc-window 9.6s ease-out infinite;
+}
+@keyframes hc-track {
+  0%, 100% { transform: translate(-6%, 0); }
+  50% { transform: translate(8%, 2%); }
+}
+.demo-track {
+  animation: hc-track 6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .demo-word, .demo-playhead, .demo-window, .demo-track {
+    animation: none !important;
+  }
+  .demo-window { opacity: 1; }
+}
+
+/* Range inputs in the studio */
+.studio input[type="range"] {
+  accent-color: var(--mark);
 }

@@ -1,36 +1,35 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Hookcut
 
-## Getting Started
+AI clipping that runs in the browser: drop a long video, get captioned, reframed, scored vertical Shorts. No upload, no credits, no watermark.
 
-First, run the development server:
+- Spec: `docs/PRD.md`. Marketing plan: `docs/MARKETING.md`.
+- Stack: Next.js 16 (App Router), Tailwind 4, mediabunny (WebCodecs decode/encode), transformers.js Whisper (WebGPU, WASM fallback) in a Web Worker, MediaPipe face detection, AI SDK + Vercel AI Gateway for the optional `/api/rank`.
+
+## Develop
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev        # http://localhost:3000
+npm run build
+npm run typecheck
+npm run lint
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## End-to-end test
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Runs in installed Google Chrome (H.264 needs proprietary codecs).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+TEST_VIDEO=/path/to/2-3-minute-talk.mp4 BASE_URL=http://localhost:3100 npx playwright test
+```
 
-## Learn More
+The test uploads the video, waits for scored clips, edits a caption word, switches layout, exports, then checks the MP4 with ffprobe (1080x1920, audio track, expected duration) and saves sample frames to `e2e/out/`.
 
-To learn more about Next.js, take a look at the following resources:
+## Where things live
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `src/lib/asr/worker.ts`: audio decode, 16 kHz resample, energy envelope, chunked Whisper with word timestamps.
+- `src/lib/clips/score.ts`: sentence-aligned candidate windows, seven signals, non-max suppression.
+- `src/lib/captions/`: presets and the canvas caption renderer (shared by preview and export).
+- `src/lib/reframe/layout.ts`: face-tracked camera path and the four layouts.
+- `src/lib/media/export.ts`: mediabunny Conversion with a `process` callback, spliced AAC audio.
+- `src/app/api/rank/route.ts`: rate-limited LLM re-rank, transcript text only, silent fallback.
