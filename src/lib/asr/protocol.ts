@@ -14,6 +14,8 @@ export type AsrEvent =
   | { type: "stage"; stage: "decode" | "model" | "transcribe"; progress: number; detail?: string }
   | { type: "audio"; duration: number; energy: Float32Array }
   | { type: "device"; device: "webgpu" | "wasm" }
+  /** result of auto-detect; null when detection failed and English is used */
+  | { type: "lang"; lang: string | null }
   | { type: "words"; words: Word[]; upTo: number }
   | { type: "done" }
   | { type: "error"; message: string };

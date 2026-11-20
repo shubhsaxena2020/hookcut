@@ -92,15 +92,23 @@ export const FONT_FILES: Record<string, { file: string; weight: string }> = {
 };
 
 let fontsReady: Promise<void> | null = null;
-/** Load caption fonts into the document under "HC <name>" so canvas text is consistent. */
+/** The document's or the worker's font set, if this context has one. */
+export function fontSet(): FontFaceSet | null {
+  if (typeof FontFace === "undefined") return null;
+  if (typeof document !== "undefined") return document.fonts;
+  return (globalThis as { fonts?: FontFaceSet }).fonts ?? null;
+}
+
+/** Load caption fonts under "HC <name>" (in the page or a worker) so canvas text is consistent. */
 export function loadCaptionFonts() {
-  if (typeof document === "undefined") return Promise.resolve();
+  const set = fontSet();
+  if (!set) return Promise.resolve();
   if (!fontsReady) {
     fontsReady = Promise.all(
       Object.entries(FONT_FILES).map(async ([name, f]) => {
         const face = new FontFace(`HC ${name}`, `url(${f.file})`, { weight: f.weight });
         await face.load();
-        document.fonts.add(face);
+        set.add(face);
       }),
     ).then(() => undefined);
   }

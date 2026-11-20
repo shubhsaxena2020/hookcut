@@ -12,7 +12,11 @@ import { analyzeVisuals, posters as makePosters } from "@/lib/media/analyze";
 import { downloadBlob, exportClip, ExportCanceled, safeName } from "@/lib/media/export";
 import { deleteProject, listProjects, loadProject, saveProject } from "@/lib/store/db";
 import { DEFAULT_BRAND, loadBrand, saveBrand, type BrandKit } from "@/lib/store/brand";
-import type { Clip, ModelSize, Project, ProjectMeta } from "@/lib/types";
+import { loadEndCard, saveEndCard, type EndCard } from "@/lib/store/endcard";
+import { countBucket, minutesBucket, track } from "@/lib/analytics";
+import { SITE } from "@/lib/site";
+import type { StudioPreset } from "@/lib/usecases";
+import type { AiCopy, CaptionPreset, Clip, LayoutMode, ModelSize, Project, ProjectMeta } from "@/lib/types";
 import { DropZone } from "./DropZone";
 import { ProcessingPanel, type PipelineStatus } from "./ProcessingPanel";
 import { ClipsGrid } from "./ClipsGrid";
@@ -33,19 +37,59 @@ const IDLE: PipelineStatus = {
   running: false,
 };
 
-function defaultsFrom(brand: BrandKit): NewClipDefaults {
-  const captions = presetSettings(brand.preset);
-  if (brand.font) captions.font = brand.font;
-  if (brand.highlight) captions.highlight = brand.highlight;
+/** Starting points the landing pages link to with /app?preset=<key>. */
+const STUDIO_PRESETS: Record<StudioPreset, { label: string; target: StudioSettings["target"]; mode: LayoutMode; captions: CaptionPreset; note: string }> = {
+  stream: { label: "stream", target: 30, mode: "stacked", captions: "gaming", note: "stacked facecam layout, Gaming captions, 30-second clips" },
+  podcast: { label: "podcast", target: 60, mode: "auto", captions: "karaoke", note: "face-tracked reframe, Karaoke captions, 60-second clips" },
+  talk: { label: "YouTube", target: 30, mode: "auto", captions: "bold-pop", note: "face-tracked reframe, Bold Pop captions, 30-second clips" },
+};
+
+function defaultsFrom(brand: BrandKit, preset: StudioPreset | null): NewClipDefaults {
+  const p = preset ? STUDIO_PRESETS[preset] : null;
+  const captions = presetSettings(p ? p.captions : brand.preset);
+  if (brand.font && !p) captions.font = brand.font;
+  if (brand.highlight && !p) captions.highlight = brand.highlight;
+  const layout = defaultLayout();
+  if (p) layout.mode = p.mode;
   return {
     captions,
-    layout: defaultLayout(),
+    layout,
     removeFillers: false,
     removeSilences: false,
     showHook: true,
     showProgress: false,
     fps: 30,
   };
+}
+
+const blend = (heuristic: number, ai: number) => Math.round(0.6 * heuristic + 0.4 * Math.max(0, Math.min(100, ai)));
+
+/**
+ * Apply cached AI re-rank results to clips that do not carry them yet. Clip ids
+ * are derived from their time window, so a re-scored clip covering the same span
+ * gets its AI title back without another request. Clips the user edited keep
+ * their own title and hook.
+ */
+function applyAi(clips: Clip[], cache: Record<string, AiCopy> | undefined): Clip[] {
+  if (!cache) return clips;
+  return clips
+    .map((c) => {
+      const a = cache[c.id];
+      if (!a || c.ai) return c;
+      return {
+        ...c,
+        ai: { score: a.score, reason: a.reason },
+        score: blend(c.score, a.score),
+        title: c.touched ? c.title : a.title,
+        hook: c.touched ? c.hook : a.hook,
+      };
+    })
+    .sort((x, y) => y.score - x.score);
+}
+
+function endCardUrl(e: EndCard) {
+  const host = new URL(SITE.url).host;
+  return e.withRef ? `${host}/?ref=${e.ref}` : host;
 }
 
 export function StudioRoot() {
@@ -63,21 +107,45 @@ export function StudioRoot() {
   const [notice, setNotice] = useState<string | null>(null);
   const [aiOn, setAiOn] = useState(false);
   const [aiState, setAiState] = useState<"idle" | "running" | "done" | "unavailable">("idle");
+  const [endCard, setEndCard] = useState<EndCard>(() =>
+    typeof window === "undefined" ? { on: false, withRef: false, ref: "" } : loadEndCard(),
+  );
+  const [preset, setPreset] = useState<StudioPreset | null>(null);
 
   const brandRef = useRef(brand);
   const projectRef = useRef(project);
+  const presetRef = useRef(preset);
+  const endCardRef = useRef(endCard);
   useEffect(() => {
     brandRef.current = brand;
     projectRef.current = project;
-  }, [brand, project]);
+    presetRef.current = preset;
+    endCardRef.current = endCard;
+  }, [brand, project, preset, endCard]);
   const workerRef = useRef<Worker | null>(null);
   const visualAbort = useRef<AbortController | null>(null);
   const exportAborts = useRef<Record<string, AbortController>>({});
 
   useEffect(() => {
-    detectCaps().then(setCaps);
+    detectCaps().then((c) => {
+      setCaps(c);
+      track("studio_open", { webgpu: c.webgpu });
+      const key = new URLSearchParams(window.location.search).get("preset");
+      if (key && key in STUDIO_PRESETS) {
+        const p = STUDIO_PRESETS[key as StudioPreset];
+        presetRef.current = key as StudioPreset;
+        setPreset(key as StudioPreset);
+        setSettings((s) => ({ ...s, target: p.target }));
+        setNotice(`Using the ${p.label} preset: ${p.note}. You can change any of it per clip.`);
+      }
+    });
     listProjects().then(setRecent);
     loadCaptionFonts().catch(() => undefined);
+  }, []);
+
+  const changeEndCard = useCallback((e: EndCard) => {
+    setEndCard(e);
+    saveEndCard(e);
   }, []);
 
   const videoUrl = useMemo(() => (project ? URL.createObjectURL(project.file) : null), [project?.id]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -100,8 +168,8 @@ export function StudioRoot() {
     if (!p.words.length) return p;
     const ctx = buildContext(p.words, p.energy, p.faces, p.cuts, p.duration);
     const keep = p.clips.filter((c) => c.touched);
-    const clips = findClips(ctx, p.targetLength, defaultsFrom(brandRef.current), keep, upTo);
-    return { ...p, clips };
+    const clips = findClips(ctx, p.targetLength, defaultsFrom(brandRef.current, presetRef.current), keep, upTo);
+    return { ...p, clips: applyAi(clips, p.aiCopy) };
   }, []);
 
   const stopPipeline = useCallback(() => {
@@ -119,6 +187,7 @@ export function StudioRoot() {
       setStatus({ ...IDLE, stage: "decode", running: true, startedAt: now });
       const worker = new Worker(new URL("../../lib/asr/worker.ts", import.meta.url), { type: "module" });
       workerRef.current = worker;
+      let device = "unknown";
       worker.onerror = (e) => {
         setError(`Transcription failed: ${e.message || "the worker crashed"}.`);
         setStatus((s) => ({ ...s, running: false, stage: "error" }));
@@ -134,7 +203,10 @@ export function StudioRoot() {
             transcribeStartedAt: ev.stage === "transcribe" && !s.transcribeStartedAt ? performance.now() : s.transcribeStartedAt,
           }));
         } else if (ev.type === "device") {
+          device = ev.device;
           setStatus((s) => ({ ...s, device: ev.device }));
+        } else if (ev.type === "lang") {
+          setProject((q) => (q && q.id === p.id ? { ...q, detectedLang: ev.lang } : q));
         } else if (ev.type === "audio") {
           setProject((q) => (q && q.id === p.id ? { ...q, energy: ev.energy, duration: ev.duration || q.duration } : q));
         } else if (ev.type === "words") {
@@ -147,6 +219,7 @@ export function StudioRoot() {
           workerRef.current = null;
           setStatus((s) => ({ ...s, stage: "done", progress: 1, running: false }));
           setProject((q) => (q && q.id === p.id ? rescore({ ...q, transcribed: true }) : q));
+          track("clips_found", { clips: countBucket(projectRef.current?.clips.length ?? 0), device });
         } else if (ev.type === "error") {
           worker.terminate();
           workerRef.current = null;
@@ -207,6 +280,7 @@ export function StudioRoot() {
         setAiState("idle");
         setProject(p);
         runPipeline(p);
+        track("video_loaded", { minutes: minutesBucket(duration) });
       } catch (err) {
         setError(err instanceof Error ? err.message : "This file could not be opened.");
       }
@@ -272,8 +346,14 @@ export function StudioRoot() {
     if (!aiOn || aiState !== "idle" || !project?.transcribed || !project.clips.length) return;
     const p = project;
     const timer = setTimeout(() => {
+    // only ask about clips the cache cannot answer (re-scoring keeps cached titles)
+    const todo = p.clips.slice(0, 20).filter((c) => !c.ai && !p.aiCopy?.[c.id]);
+    if (!todo.length) {
+      setAiState("done");
+      return;
+    }
     setAiState("running");
-    const candidates = p.clips.slice(0, 20).map((c) => ({
+    const candidates = todo.map((c) => ({
       id: c.id,
       text: wordsIn(p.words, c.start, c.end)
         .map((w) => w.text)
@@ -291,24 +371,13 @@ export function StudioRoot() {
           setAiState("unavailable");
           return;
         }
-        const byId = new Map(res.clips.map((c) => [c.id, c]));
+        const fresh: Record<string, AiCopy> = {};
+        for (const a of res.clips) {
+          fresh[a.id] = { title: a.title.slice(0, 80), hook: a.hook.slice(0, 80), score: Math.round(a.score), reason: a.reason };
+        }
         setProject((q) => {
           if (!q || q.id !== p.id) return q;
-          const clips = q.clips
-            .map((c) => {
-              const a = byId.get(c.id);
-              if (!a) return c;
-              const blended = Math.round(0.6 * c.score + 0.4 * Math.max(0, Math.min(100, a.score)));
-              return {
-                ...c,
-                ai: { score: Math.round(a.score), reason: a.reason },
-                score: blended,
-                title: c.touched ? c.title : a.title.slice(0, 80),
-                hook: c.touched ? c.hook : a.hook.slice(0, 80),
-              };
-            })
-            .sort((x, y) => y.score - x.score);
-          return { ...q, clips };
+          return { ...q, aiCopy: { ...q.aiCopy, ...fresh }, clips: applyAi(q.clips, fresh) };
         });
         setAiState("done");
       })
@@ -352,20 +421,21 @@ export function StudioRoot() {
     exportAborts.current[clip.id] = ac;
     setExports((e) => ({ ...e, [clip.id]: 0 }));
     try {
+      const ec = endCardRef.current;
       const blob = await exportClip({
         file: p.file,
         clip,
         words: p.words,
         faces: p.faces,
-        srcWidth: p.width,
-        srcHeight: p.height,
         logo: logoImg.current,
         accent: brandRef.current.accent,
+        endCard: ec.on ? endCardUrl(ec) : null,
         signal: ac.signal,
         onProgress: (v) => setExports((e) => ({ ...e, [clip.id]: v })),
       });
       downloadBlob(blob, `${safeName(clip.title)}-hookcut.mp4`);
       setNotice(`Exported "${clip.title}" (${(blob.size / 1e6).toFixed(1)} MB).`);
+      track("export_done", { layout: clip.layout.mode, fps: clip.fps, endcard: ec.on });
     } catch (err) {
       if (!(err instanceof ExportCanceled) && !ac.signal.aborted) {
         setError(`Export failed: ${err instanceof Error ? err.message : String(err)}`);
@@ -491,6 +561,9 @@ export function StudioRoot() {
             onCancelExport={() => cancelExport(selectedClip.id)}
             accent={brand.accent}
             logo={brand.logo}
+            endCard={endCard}
+            endCardUrl={endCardUrl(endCard)}
+            onEndCard={changeEndCard}
           />
         ) : (
           <div className="mx-auto w-full max-w-6xl px-4 py-6">
@@ -499,7 +572,7 @@ export function StudioRoot() {
               project={project}
               onCancel={stopPipeline}
               onRestart={() => {
-                const fresh = { ...project, words: [], clips: [], transcribed: false };
+                const fresh = { ...project, words: [], clips: [], transcribed: false, aiCopy: undefined, detectedLang: undefined };
                 setProject(fresh);
                 runPipeline(fresh);
               }}
@@ -538,7 +611,7 @@ export function StudioRoot() {
             if (applyAll) {
               setProject((q) => {
                 if (!q) return q;
-                const d = defaultsFrom(b);
+                const d = defaultsFrom(b, null);
                 return { ...q, clips: q.clips.map((c) => ({ ...c, captions: { ...d.captions } })) };
               });
             }

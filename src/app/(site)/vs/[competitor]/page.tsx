@@ -11,7 +11,7 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: PageProps<"/vs/[competitor]">): Promise<Metadata> {
   const { competitor } = await params;
   const c = getCompetitor(competitor);
-  if (!c) return {};
+  if (!c) return { title: "Not found", robots: { index: false } };
   return {
     title: c.title,
     description: c.description,

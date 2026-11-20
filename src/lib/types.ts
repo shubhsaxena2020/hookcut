@@ -94,6 +94,8 @@ export type Clip = {
   touched?: boolean;
 };
 
+export type AiCopy = { title: string; hook: string; score: number; reason: string };
+
 export type FaceSample = { t: number; x: number; y: number; w: number; h: number; s: number } | { t: number; none: true };
 
 export type ProjectMeta = {
@@ -118,6 +120,10 @@ export type Project = ProjectMeta & {
   clips: Clip[];
   transcribed: boolean;
   lang: string;
+  /** language found by auto-detect (undefined until known, null if detection failed) */
+  detectedLang?: string | null;
+  /** AI re-rank results by clip id, so titles survive re-scoring */
+  aiCopy?: Record<string, AiCopy>;
   model: ModelSize;
   targetLength: 15 | 30 | 60 | 90;
 };

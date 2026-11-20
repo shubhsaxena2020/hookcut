@@ -132,6 +132,50 @@ async function pickDevice(): Promise<"webgpu" | "wasm"> {
   return "wasm";
 }
 
+type LangModel = {
+  model: ((inputs: Record<string, unknown>) => Promise<{ logits: TensorLike }>) & {
+    generation_config?: { lang_to_id?: Record<string, number>; decoder_start_token_id?: number };
+  };
+  processor: (audio: Float32Array) => Promise<{ input_features: unknown }>;
+};
+type TensorLike = { data: ArrayLike<number>; dims: number[]; type: string; to?: (t: string) => TensorLike };
+
+/**
+ * Whisper language identification. transformers.js does not implement it (it
+ * silently falls back to English), so do what Whisper itself does: run the
+ * encoder and one decoder step from <|startoftranscript|>, then compare the
+ * probabilities of the language tokens. Up to three voiced chunks are summed so
+ * one music intro or a quiet opening does not decide the language alone.
+ */
+async function detectLanguage(transcriber: unknown, slices: Float32Array[]): Promise<string | null> {
+  const t = transcriber as LangModel;
+  const cfg = t.model.generation_config;
+  const ids = cfg?.lang_to_id;
+  if (!ids || cfg?.decoder_start_token_id == null || !slices.length) return null;
+  const { Tensor } = await import("@huggingface/transformers");
+  const langs = Object.entries(ids);
+  const total = new Float64Array(langs.length);
+  let n = 0;
+  for (const slice of slices.slice(0, 3)) {
+    n++;
+    const { input_features } = await t.processor(slice);
+    const decoder_input_ids = new Tensor("int64", BigInt64Array.from([BigInt(cfg.decoder_start_token_id)]), [1, 1]);
+    let logits = (await t.model({ input_features, decoder_input_ids })).logits;
+    if (logits.type !== "float32" && logits.to) logits = logits.to("float32");
+    const vocab = logits.dims[logits.dims.length - 1];
+    const off = logits.data.length - vocab; // last decoder position
+    const vals = langs.map(([, id]) => Number(logits.data[off + id]));
+    const max = Math.max(...vals);
+    const exp = vals.map((v) => Math.exp(v - max));
+    const sum = exp.reduce((s, v) => s + v, 0);
+    exp.forEach((v, i) => (total[i] += v / sum));
+    if (Math.max(...total) / n > 0.8) break; // confident enough already
+  }
+  let bi = 0;
+  for (let i = 1; i < total.length; i++) if (total[i] > total[bi]) bi = i;
+  return langs[bi][0].replace(/^<\|/, "").replace(/\|>$/, "");
+}
+
 async function run(req: AsrRequest) {
   post({ type: "stage", stage: "decode", progress: 0 });
   const { pcm, duration } = await decodeAudio(req.file);
@@ -195,19 +239,36 @@ async function run(req: AsrRequest) {
   post({ type: "stage", stage: "model", progress: 1 });
 
   const bounds = chunkBounds(energy, duration);
+  const sliceOf = ([a, b]: [number, number]) => pcm.subarray(Math.floor(a * SR), Math.floor(b * SR));
+  // skip near-silent chunks: Whisper tends to hallucinate on silence
+  const voiced = bounds.map((bd) => {
+    const s = sliceOf(bd);
+    let peak = 0;
+    for (let k = 0; k < s.length; k += 64) peak = Math.max(peak, Math.abs(s[k]));
+    return peak > 0.01;
+  });
+
+  let lang: string | null = english ? "en" : req.lang === "auto" ? null : req.lang;
+  if (!english && req.lang === "auto") {
+    post({ type: "stage", stage: "transcribe", progress: 0, detail: "Detecting the spoken language" });
+    try {
+      lang = await detectLanguage(transcriber, bounds.filter((_, i) => voiced[i]).map(sliceOf));
+    } catch (err) {
+      console.warn("language detection failed", err);
+    }
+    post({ type: "lang", lang });
+  }
+
   let id = 0;
   for (let i = 0; i < bounds.length; i++) {
     const [a, b] = bounds[i];
     post({ type: "stage", stage: "transcribe", progress: a / duration });
-    const slice = pcm.subarray(Math.floor(a * SR), Math.floor(b * SR));
-    // skip near-silent chunks: Whisper tends to hallucinate on silence
-    let peak = 0;
-    for (let k = 0; k < slice.length; k += 64) peak = Math.max(peak, Math.abs(slice[k]));
+    const slice = sliceOf(bounds[i]);
     const words: Word[] = [];
-    if (peak > 0.01) {
+    if (voiced[i]) {
       const opts: Record<string, unknown> = { return_timestamps: "word" };
-      if (!english && req.lang !== "auto") {
-        opts.language = req.lang;
+      if (!english && lang) {
+        opts.language = lang;
         opts.task = "transcribe";
       }
       const res = await transcriber(slice, opts);

@@ -10,7 +10,7 @@ export default function PrivacyPage() {
   return (
     <article className="prose-hc mx-auto px-4 py-16 sm:px-6">
       <h1 className="font-display text-4xl font-black tracking-tight">Privacy</h1>
-      <p className="text-muted">Last updated 20 November 2026</p>
+      <p className="text-muted">Last updated 21 November 2026</p>
       <p>
         Hookcut is designed so that we never receive your video. This page explains exactly what
         happens to your data.
@@ -49,6 +49,21 @@ export default function PrivacyPage() {
         Hookcut does not use advertising cookies or tracking pixels. Our host, Vercel, keeps standard
         server logs (such as IP address and requested page) for security and abuse prevention. The AI
         re-rank endpoint keeps a short in-memory counter per IP address to enforce its rate limit.
+      </p>
+      <p>
+        We use Vercel Web Analytics to count page views. It does not use cookies, and it reports the
+        page address, the referring site and coarse device information. Before a page view is sent,
+        we remove everything from the address except a <code>ref</code> code and campaign tags. If we
+        later turn on studio event counts (for example &ldquo;a clip was exported&rdquo;), they will
+        only carry coarse buckets such as layout, frame rate or video length range, never file names,
+        transcripts, titles or anything from your video.
+      </p>
+      <h2>End card and referral code</h2>
+      <p>
+        The &ldquo;Made with Hookcut&rdquo; end card is off by default. If you turn it on and choose
+        to include a referral code, the code is a random string made in your browser and stored only
+        there. It is not linked to you or to any account. When someone visits a link with that code,
+        the code appears in our page view counts and nowhere else.
       </p>
       <h2>Contact</h2>
       <p>

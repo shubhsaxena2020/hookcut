@@ -287,6 +287,70 @@ export function drawLogo(ctx: Ctx, W: number, H: number, img: CanvasImageSource 
   ctx.restore();
 }
 
+export const END_CARD_SECONDS = 1.5;
+
+/**
+ * The opt-in "Made with Hookcut" outro, drawn after the clip ends (never over it).
+ * `t` runs from 0 to END_CARD_SECONDS. `url` is the site address, with ?ref= if chosen.
+ */
+export function drawEndCard(ctx: Ctx, W: number, H: number, t: number, url: string) {
+  const ease = (x: number) => 1 - Math.pow(1 - Math.max(0, Math.min(1, x)), 3);
+  const a = ease(t / 0.3);
+  const u = Math.min(W, H);
+  ctx.save();
+  ctx.fillStyle = "#11133a";
+  ctx.fillRect(0, 0, W, H);
+  ctx.globalAlpha = a;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+
+  // hook-and-cut mark, from the 32-unit logo grid
+  const s = (u * 0.2) / 32;
+  const cx = W / 2;
+  const cy = H / 2 - u * 0.2;
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.scale(s * (0.88 + 0.12 * a), s * (0.88 + 0.12 * a));
+  ctx.translate(-16, -16);
+  ctx.fillStyle = "#2433d6";
+  rr(ctx, 0, 0, 32, 32, 9);
+  ctx.fill();
+  ctx.lineCap = "round";
+  ctx.strokeStyle = "#ffe14a";
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(19.5, 6.5);
+  ctx.lineTo(19.5, 18.7);
+  ctx.arc(13.5, 18.7, 6, 0, Math.PI, false);
+  ctx.lineTo(7.5, 17.3);
+  ctx.stroke();
+  ctx.strokeStyle = "#2433d6";
+  ctx.lineWidth = 2.6;
+  ctx.beginPath();
+  ctx.moveTo(14.5, 13.2);
+  ctx.lineTo(24.5, 9.6);
+  ctx.stroke();
+  ctx.restore();
+
+  ctx.fillStyle = "#a3a8da";
+  ctx.font = `600 ${Math.round(u * 0.045)}px "HC Instrument Sans", system-ui, sans-serif`;
+  ctx.fillText("Made with", cx, H / 2 + u * 0.0);
+  ctx.fillStyle = "#ffffff";
+  ctx.font = `900 ${Math.round(u * 0.13)}px "HC Anybody", system-ui, sans-serif`;
+  ctx.fillText("hookcut", cx, H / 2 + u * 0.12);
+
+  ctx.font = `600 ${Math.round(u * 0.038)}px "HC Instrument Sans", system-ui, sans-serif`;
+  const tw = Math.min(W * 0.9, ctx.measureText(url).width + u * 0.08);
+  const ph = u * 0.075;
+  const py = H / 2 + u * 0.28;
+  ctx.fillStyle = "#ffe14a";
+  rr(ctx, cx - tw / 2, py - ph / 2, tw, ph, ph / 2);
+  ctx.fill();
+  ctx.fillStyle = "#11133a";
+  ctx.fillText(url, cx, py, W * 0.86);
+  ctx.restore();
+}
+
 /* ---------- caption files ---------- */
 function ts(t: number, sep: "," | ".") {
   const ms = Math.max(0, Math.round(t * 1000));

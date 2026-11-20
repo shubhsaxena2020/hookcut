@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Clip, Project, SignalKey } from "@/lib/types";
+import type { EndCard } from "@/lib/store/endcard";
 import { ASPECTS, loadCaptionFonts } from "@/lib/captions/presets";
 import { buildLines, drawCaptions, drawHook, drawLogo, drawProgress, toSrt, toVtt } from "@/lib/captions/render";
 import { buildContext, scoreWindow, SIGNAL_LABELS } from "@/lib/clips/score";
@@ -26,7 +27,13 @@ export function ClipEditor({
   onCancelExport,
   accent,
   logo,
+  endCard,
+  endCardUrl,
+  onEndCard,
 }: {
+  endCard: EndCard;
+  endCardUrl: string;
+  onEndCard: (e: EndCard) => void;
   project: Project;
   clip: Clip;
   videoUrl: string;
@@ -316,7 +323,16 @@ export function ClipEditor({
           {tab === "layout" && (
             <LayoutPanel clip={clip} onChange={onChange} onFacecamAll={onFacecamAll} videoRef={videoRef} />
           )}
-          {tab === "clip" && <ClipPanel clip={clip} onChange={onChange} onCaptions={downloadCaptions} />}
+          {tab === "clip" && (
+            <ClipPanel
+              clip={clip}
+              onChange={onChange}
+              onCaptions={downloadCaptions}
+              endCard={endCard}
+              endCardUrl={endCardUrl}
+              onEndCard={onEndCard}
+            />
+          )}
         </div>
       </aside>
     </div>

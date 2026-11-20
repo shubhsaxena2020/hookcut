@@ -15,6 +15,19 @@ export type PipelineStatus = {
   running: boolean;
 };
 
+/** "Detected language: Spanish." for auto-detect projects, once known. */
+function langLine(p: Project) {
+  if (p.lang !== "auto" || p.detectedLang === undefined) return "";
+  if (p.detectedLang === null) return "Could not detect the language, so English was used.";
+  let name = p.detectedLang;
+  try {
+    name = new Intl.DisplayNames(["en"], { type: "language" }).of(p.detectedLang) ?? name;
+  } catch {
+    /* unknown code: show it as is */
+  }
+  return `Detected language: ${name}. Not right? Choose the spoken language before you drop the video.`;
+}
+
 const STEPS: { key: PipelineStatus["stage"]; label: string }[] = [
   { key: "decode", label: "Read audio" },
   { key: "model", label: "Load speech model" },
@@ -39,11 +52,14 @@ export function ProcessingPanel({
     return () => clearInterval(i);
   }, [status.running]);
 
+  const lang = langLine(project);
+
   if (status.stage === "done" && project.transcribed) {
     return (
       <p className="mb-4 text-sm text-night-muted" data-testid="processing-done">
         Transcribed {project.words.length.toLocaleString()} words from {fmtTime(project.duration)} of video
         {status.device ? ` using ${status.device === "webgpu" ? "WebGPU" : "WebAssembly"}` : ""}.
+        {lang && <span data-testid="detected-lang"> {lang}</span>}
       </p>
     );
   }
@@ -109,6 +125,7 @@ export function ProcessingPanel({
         Face tracking {Math.round(status.visual * 100)}%
         {status.device && `, speech on ${status.device === "webgpu" ? "WebGPU" : "WebAssembly (slower; WebGPU is unavailable)"}`}
         {project.words.length > 0 && `, ${project.words.length.toLocaleString()} words so far`}. Clips appear below as they are found.
+        {lang && <span data-testid="detected-lang"> {lang}</span>}
       </p>
     </section>
   );

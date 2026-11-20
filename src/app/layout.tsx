@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Anybody, Instrument_Sans } from "next/font/google";
 import { SITE } from "@/lib/site";
+import { AnalyticsTag } from "@/components/site/AnalyticsTag";
 import "./globals.css";
 
 const display = Anybody({
@@ -58,7 +59,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${display.variable} ${body.variable} antialiased`}>
-      <body className="min-h-dvh flex flex-col">{children}</body>
+      <body className="min-h-dvh flex flex-col">
+        {children}
+        <AnalyticsTag />
+      </body>
     </html>
   );
 }

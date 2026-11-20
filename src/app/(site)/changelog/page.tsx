@@ -8,6 +8,20 @@ export const metadata: Metadata = {
 
 const ENTRIES = [
   {
+    date: "21 November 2026",
+    version: "1.1",
+    title: "End card, auto-detect language, background export",
+    items: [
+      "Auto-detect the spoken language with Whisper, instead of assuming English.",
+      "Export now renders in a background worker, so the studio stays responsive while clips encode.",
+      "Optional “Made with Hookcut” end card (off by default), with an optional referral code kept on your device.",
+      "AI titles are kept when clips are re-scored, instead of being replaced by the plain titles.",
+      "Studio presets for streams, podcasts and YouTube videos.",
+      "New pages: Twitch to TikTok, podcast to Shorts, YouTube to Shorts, and sourced comparisons with Opus Clip, Vizard, Klap and Submagic.",
+      "Privacy-friendly page view analytics (no cookies).",
+    ],
+  },
+  {
     date: "20 November 2026",
     version: "1.0",
     title: "Hookcut launches",

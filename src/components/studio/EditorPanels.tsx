@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import type { CaptionSettings, Clip, LayoutMode, Rect, Word, WordEdit } from "@/lib/types";
+import type { EndCard } from "@/lib/store/endcard";
 import { FONT_OPTIONS, PRESETS, PRESET_ORDER, presetSettings } from "@/lib/captions/presets";
 import { buildLines, isFiller } from "@/lib/captions/render";
 import { wordsIn } from "@/lib/clips/score";
@@ -401,7 +402,21 @@ function FacecamPicker({ rect, videoRef, onChange }: { rect: Rect; videoRef: Ref
 }
 
 /* ---------------- Clip ---------------- */
-export function ClipPanel({ clip, onChange, onCaptions }: { clip: Clip; onChange: (c: Clip) => void; onCaptions: (k: "srt" | "vtt") => void }) {
+export function ClipPanel({
+  clip,
+  onChange,
+  onCaptions,
+  endCard,
+  endCardUrl,
+  onEndCard,
+}: {
+  clip: Clip;
+  onChange: (c: Clip) => void;
+  onCaptions: (k: "srt" | "vtt") => void;
+  endCard: EndCard;
+  endCardUrl: string;
+  onEndCard: (e: EndCard) => void;
+}) {
   const [copied, setCopied] = useState("");
   const copy = async (label: string, text: string) => {
     try {
@@ -469,6 +484,34 @@ export function ClipPanel({ clip, onChange, onCaptions }: { clip: Clip; onChange
           ))}
         </div>
       </Field>
+      <section aria-labelledby="export-opts" className="rounded-xl border border-night-line p-3">
+        <h3 id="export-opts" className="text-xs font-medium text-night-muted">
+          Export options (all clips)
+        </h3>
+        <div className="mt-1 divide-y divide-night-line">
+          <Toggle
+            id="t-endcard"
+            label="Made with Hookcut end card"
+            hint="Help Hookcut stay free: adds a 1.5 second outro after your clip, never over it. Turn it off any time."
+            checked={endCard.on}
+            onChange={(v) => onEndCard({ ...endCard, on: v })}
+          />
+          {endCard.on && (
+            <Toggle
+              id="t-endref"
+              label="Include my referral code"
+              hint="A random code made in this browser, not linked to you. Stays on this device."
+              checked={endCard.withRef}
+              onChange={(v) => onEndCard({ ...endCard, withRef: v })}
+            />
+          )}
+        </div>
+        {endCard.on && (
+          <p className="mt-2 text-xs text-night-muted" data-testid="endcard-url">
+            The card shows: <span className="font-semibold text-night-text">{endCardUrl}</span>
+          </p>
+        )}
+      </section>
       <div>
         <h3 className="text-xs font-medium text-night-muted">Caption files</h3>
         <div className="mt-1.5 flex gap-2">
