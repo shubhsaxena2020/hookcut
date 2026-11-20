@@ -162,6 +162,7 @@ export function StudioRoot() {
         .then((res) => {
           if (ac.signal.aborted) return;
           setProject((q) => (q && q.id === p.id ? rescore({ ...q, faces: res.faces, cuts: res.cuts }, q.transcribed ? Infinity : lastUpTo(q)) : q));
+          setAiState((st) => (st === "done" ? "idle" : st));
         })
         .catch((err) => console.warn("visual analysis failed", err));
     },
@@ -327,6 +328,7 @@ export function StudioRoot() {
   const changeTarget = useCallback(
     (target: StudioSettings["target"]) => {
       setSettings((s) => ({ ...s, target }));
+      setAiState((st) => (st === "done" ? "idle" : st));
       setProject((q) => (q ? rescore({ ...q, targetLength: target }, q.transcribed ? Infinity : lastUpTo(q)) : q));
     },
     [rescore],

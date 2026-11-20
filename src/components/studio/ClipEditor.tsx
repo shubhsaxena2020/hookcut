@@ -231,7 +231,9 @@ export function ClipEditor({
             <video
               ref={videoRef}
               src={videoUrl}
-              className="hidden"
+              className="pointer-events-none absolute left-0 top-0 h-px w-px opacity-0"
+              aria-hidden="true"
+              tabIndex={-1}
               playsInline
               preload="auto"
               onLoadedMetadata={(e) => (e.currentTarget.currentTime = clip.start)}

@@ -236,7 +236,7 @@ export default function Home() {
               <thead>
                 <tr className="border-b-2 border-ink text-sm">
                   <th scope="col" className="py-3 pr-4 font-semibold text-muted">
-                    &nbsp;
+                    <span className="sr-only">What you get</span>
                   </th>
                   <th scope="col" className="py-3 pr-4 font-semibold">
                     Hookcut
